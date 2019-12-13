@@ -43,24 +43,6 @@
         camera.position.set(0, 5, 10);
         camera.rotation.set(-0.25, 0, 0);
 
-        // const controls = new OrbitControls(camera, canvas);
-        // controls.target.set(0, 0, 0);
-        // controls.update();
-
-        // Keeps the state of keys/buttons
-        //
-        // You can check
-        //
-        //   inputManager.keys.left.down
-        //
-        // to see if the left key is currently held down
-        // and you can check
-        //
-        //   inputManager.keys.left.justPressed
-        //
-        // To see if the left key was pressed this frame
-        //
-        // Keys are 'left', 'right', 'a', 'b', 'up', 'down'
         class InputManager {
             constructor() {
                 this.keys = {};
@@ -154,6 +136,8 @@
         const boxDepth = 1;
         const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
+        const geometry2 = new THREE.BoxGeometry(1, 1, 1);
+
         const loader = new THREE.TextureLoader();
 
         const materialplane = new THREE.MeshBasicMaterial({
@@ -170,14 +154,25 @@
             planeset.push(object);
         }
         const cubes = [];  // just an array we can use to rotate the cubes
+        // const notes = [];
 
         const material = new THREE.MeshBasicMaterial({
             map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
         });
+
+        const material2 = new THREE.MeshBasicMaterial({
+            color: 0x00ff00
+        });
+
         const cube = new THREE.Mesh(geometry, material);
+        const note = new THREE.Mesh(geometry2, material2);
         // cube.rotation.x = 90;
+
         scene.add(cube);
         cubes.push(cube);  // add to our list of cubes to rotate
+
+        scene.add(note);
+        note.position.set(0, 0.5, -90);
 
         function resizeRendererToDisplaySize(renderer) {
             const canvas = renderer.domElement;

@@ -11,66 +11,27 @@
 <body>
 
     <div id="header">
-        <h1 id="title">$.csv.toArray()</h1>
+        <h1 id="title">$.txt.toArray()</h1>
         <div id="link"><a href="https://github.com/typeiii/jquery-csv">GitHub</a></div>
     </div>
-    <div id="container">
-        <section id="content">
-            <h2>Description</h2>
-            <p>Used to parse a single line of CSV data into an array of values.</p>
-            <hr>
-            <h2>Usage</h2>
-            <pre><code class="javascript">var result = $.csv.toArray(input);</code></pre>
-            <hr />
-            <h2>Input</h2>
-            <textarea id="input"
-                style="height: 25px;">"You will come back stronger then ever","like Lance Armstrong","but with two balls"</textarea>
-            <input id="run" type="button" value="Run" />
-            <hr />
-            <h2>Result</h2>
-            <textarea id="result" style="height: 82px;"></textarea>
-        </section>
-    </div>
+    <script>
+        var allText = [];
+        var allTextLines = [];
+        var Lines = [];
+        var txtFile = new XMLHttpRequest();
 
-    <script src="http://code.jquery.com/jquery-3.3.1.slim.js"
-        integrity="sha256-fNXJFIlca05BIO2Y5zh1xrShK3ME+/lYZ0j+ChxX2DA=" crossorigin="anonymous"></script>
-    <script src="libs/jquery.csv.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script>
-    <script src="libs/require.js"></script>
-    <script>
-        // enable syntax highlighting
-        hljs.initHighlightingOnLoad();
-        $(document).ready(() => {
-            parse();
-        });
-        $('#run').bind('click', function () {
-            parse();
-        });
-        function parse() {
-            const input = $('#input').val();
-            const data = $.csv.toArray(input);
-            $('#result').empty();
-            $('#result').html(JSON.stringify(data, null, 2));
-        }
-    </script>
-    <script>
-        var array = [];
-        var xmlhttp;
-        if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
-            xmlhttp = new XMLHttpRequest();
-        } else { // code for IE6, IE5
-            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        }
-        xmlhttp.onreadystatechange = function () {
-            if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-                var text = xmlhttp.responseText;
-                // Now convert it into array using regex
-                array.push(text.split(/\r?\n/));
+        txtFile.open("GET", "yes.txt", true);
+        allText = txtFile.responseText;
+        txtFile.onreadystatechange = function () {
+            if (txtFile.readyState == 4) {
+
+                // Makes sure it's found the file.
+                allText = txtFile.responseText;
+                allTextLines = allText.split(/\r\n|\n/);
             }
+            console.log(allTextLines);
         }
-        xmlhttp.open("GET", "yes.txt", true);
-        xmlhttp.send();
-        console.log(array);
+        txtFile.send(null)
     </script>
 
 </body>
