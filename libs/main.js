@@ -1,6 +1,8 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r110/build/three.module.js';
 import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r110/examples/jsm/controls/OrbitControls.js';
 
+var play = {};
+
 (function () {
 	function main() {
 		const canvas = document.querySelector('#c');
@@ -59,13 +61,6 @@ import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources
 					{ elem: document.querySelector('#right'), key: 'right' },
 				];
 
-				// note: not a good design?
-				// The last direction the user presses should take
-				// precedence. Example: User presses L, without letting go of
-				// L user presses R. Input should now be R. User lets off R
-				// Input should now be L.
-				// With this code if user pressed both L and R result is nothing
-
 				const clearKeys = () => {
 					for (const { key } of sides) {
 						setKey(key, false);
@@ -107,7 +102,7 @@ import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources
 		const boxDepth = 1;
 		const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
-		const geometry2 = new THREE.BoxGeometry(1, 1, 1);
+		// const geometry2 = new THREE.BoxGeometry(1, 1, 1);
 
 		const loader = new THREE.TextureLoader();
 
@@ -126,25 +121,24 @@ import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources
 			planeset.push(object);
 		}
 		const cubes = [];  // just an array we can use to rotate the cubes
-		// const notes = [];
 
 		const material = new THREE.MeshBasicMaterial({
 			map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
 		});
 
-		const material2 = new THREE.MeshBasicMaterial({
-			color: 0x00ff00
-		});
+		// const material2 = new THREE.MeshBasicMaterial({
+		// 	color: 0x00ff00
+		// });
 
 		const cube = new THREE.Mesh(geometry, material);
-		const note = new THREE.Mesh(geometry2, material2);
+		// const note = new THREE.Mesh(geometry2, material2);
 		// cube.rotation.x = 90;
 
 		scene.add(cube);
 		cubes.push(cube);  // add to our list of cubes to rotate
 
-		scene.add(note);
-		note.position.set(0, 0.5, -90);
+		// scene.add(note);
+		// note.position.set(0, 0.5, -90);
 
 		function resizeRendererToDisplaySize() {
 			const canvas = renderer.domElement;
@@ -182,5 +176,67 @@ import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources
 		requestAnimationFrame(render);
 	}
 
+	play.notePos = [-3, -1, 1, 3];
+	play.interval = 2500;
+	play.sounds = ['sound1', 'sound2', 'sound3', 'sound4'];
+
+	setTimeout(function () {
+
+		if (play.interval > 700) {
+			play.interval -= 100;
+		}
+
+		posX = Math.floor(Math.random() * (4));
+		//alert("loc:"+keyhero.notePos[posX] + " num:" + posX);   /*WORKS*/
+
+		//spawn note
+		const note = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+		note.position.x = play.notePos[posX];
+		note.position.y = .5;
+		note.position.z = -90;
+		note.x = posX;
+		scene.add(note);
+
+		function move () {
+
+			requestAnimationFrame(move);
+
+			if (note.position.z <= -90) {
+				//move note
+				note.position.z += 1;
+
+				//check note hit
+				if (inputManager.keys.bt1.down && note.position.z == 0 || inputManager.keys.bt2.down && note.position.z == 0 || inputManager.keys.bt3.down && note.position.z == 0 || inputManager.keys.bt4.down && note.position.z == 0) {
+
+					var soundID = play.sounds[1];
+					document.getElementById(soundID).play();
+
+					scene.remove(note);
+					cancelAnimationFrame(move);
+					//nullify function and note freeing memory and ending function, needed
+					note = undefined;
+					move = undefined;
+				}
+				
+				renderer.render(scene, camera);
+			}
+			//note scrolls past
+			else {
+				var slideId = play.sounds[4];
+				document.getElementById(slideId).play();
+
+				scene.remove(note);
+				renderer.render(scene, camera);
+				cancelAnimationFrame(move);
+				//nullify function and note freeing memory and ending function
+				note = undefined;
+				move = undefined;
+			}
+		};
+		move();
+
+	}, play.interval);
+
 	main();
+
 })()
