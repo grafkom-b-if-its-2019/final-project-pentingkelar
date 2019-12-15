@@ -1,5 +1,4 @@
-import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r110/build/three.module.js';
-import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r110/examples/jsm/controls/OrbitControls.js';
+import * as THREE from './three.module.js';
 
 var play = {};
 var notelist = [];
@@ -102,6 +101,12 @@ var notelist = [];
 		const inputManager = new InputManager();
 
 		const scene = new THREE.Scene();
+		{
+			const color = 0x000000;  // black
+			const near = 10;
+			const far = 100;
+			scene.fog = new THREE.Fog(color, near, far);
+		}
 
 		const boxWidth = 1;
 		const boxHeight = 1;
@@ -115,16 +120,18 @@ var notelist = [];
 		// create the particle variables
 		var particleCount = 500,
 			particles = new THREE.Geometry(),
-			pMaterial = new THREE.PointsMaterial({
-				size: 5,
-				map: loader.load(
-					"./assets/particle.png"
-				),
-				color: 0x888888,
-				blending: THREE.AdditiveBlending,
-				transparent: true,
-				depthTest: false
-			});
+			partext = loader.load("./assets/particle.png");
+		partext.magFilter = THREE.NearestFilter;
+		partext.minFilter = THREE.NearestFilter;
+		const pMaterial = new THREE.PointsMaterial({
+			size: 2.5,
+			map: partext,
+			color: 0x888888,
+			blending: THREE.AdditiveBlending,
+			transparent: true,
+			fog: false,
+			depthTest: false
+		});
 
 		// now create the individual particles
 		for (var p = 0; p < particleCount; p++) {
@@ -163,16 +170,20 @@ var notelist = [];
 
 				// check if we need to reset
 				if (particle.z > 5) {
-					particle.z=Math.random() * (-300 - (-100)) - 100;
+					particle.z = Math.random() * (-300 - (-100)) - 100;
 				}
 
 				particle.add(particle.velocity);
 			}
 		}
 
+		var textplane = loader.load('assets/images.png');
+		textplane.wrapT = THREE.RepeatWrapping;
+		textplane.repeat.y = 500;
+		textplane.magFilter = THREE.NearestFilter;
+		textplane.minFilter = THREE.NearestMipmapLinearFilter;
 		const materialplane = new THREE.MeshBasicMaterial({
-			//map: loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSBR32fWLz4gU2RlpSkhHFxfYnqb6dhvZGaZwHQsmpvCruLi0pj'), side: THREE.DoubleSide
-			map: loader.load('assets/images.png'), side: THREE.DoubleSide
+			map: textplane, side: THREE.DoubleSide
 		});
 		const planeset = [];
 		var posset = -3;
@@ -196,19 +207,50 @@ var notelist = [];
 		scene.add(cube);
 		cubes.push(cube);  // add to our list of cubes to rotate
 
-
+		var number = 0;
 		class NoteH {
 			constructor() {
 				this.flag = 1;
 				this.posX = Math.floor(Math.random() * (4));
 				//spawn note
-				this._object = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.5), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+				this._object = new THREE.Mesh(new THREE.BoxGeometry(1, 0.25, 0.5), new THREE.MeshBasicMaterial({ color: 0x5fe0fa }));
 				this._object.position.x = play.notePos[this.posX];
 				this._object.position.y = .5;
 				this._object.position.z = -90;
 				this._object.x = this.posX;
+				this._object.name = 'note'+String(number);
 				notelist.push(this);
 				scene.add(this._object);
+				number++;
+			}
+			movegreat() {
+				if (this._object.position.z <= 5) {
+					//move note
+					this._object.position.z += 0.5;
+					this._object.position.y = -(Math.sqrt(2 - Math.pow(this._object.position.z, 2)) * 0.01) + 2;
+					this._object.rotation.x += 1;
+				}
+				else {
+					this.flag = 0;
+					scene.remove(this._object);
+				}
+			}
+			movegood() {
+				if (this._object.position.z <= 5) {
+					//move note
+					this.flag = 0;
+					this._object.position.z += 0.00005;
+					this._object.position.y = -(Math.pow(this._object.position.z, 2) * 0.005) + 2;
+					this._object.rotation.x += 0.5;
+				}
+				else {
+					scene.remove(this._object);
+				}
+			}
+			movemiss() {
+				console.log('miss');
+				this.flag = -1;
+				scene.remove(this._object);
 			}
 			move() {
 				if (this._object.position.z <= 1) {
@@ -216,27 +258,22 @@ var notelist = [];
 					this._object.position.z += 1;
 				}
 				else {
-					console.log('inrange');
-					this.flag = 0;
-					scene.remove(this._object);
+					if (this.flag == 1) this.movemiss();
 				}
 				//check note hit
 				if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
-					inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3)
-				 {
+					inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3) {
 					if (this._object.position.z >= -0.75 && this._object.position.z <= 0.75) {
 						// var soundID = play.sounds[1];
 						// document.getElementById(soundID).play();
 						console.log('great')
-						this.flag = 0;
-						scene.remove(this._object);
+						if (this.flag == 1) this.movegreat();
 					}
 					else if (this._object.position.z >= -1 && this._object.position.z <= 1) {
 						// var soundID = play.sounds[1];
 						// document.getElementById(soundID).play();
 						console.log('good')
-						this.flag = 0;
-						scene.remove(this._object);
+						if (this.flag == 1) this.movegood();
 					}
 				}
 			}
@@ -252,7 +289,11 @@ var notelist = [];
 		function checknotehit() {
 			var n = 0;
 			for (n; n < notelist.length; n++) {
-				if (!notelist[n].flag) notelist.splice(n, 1);
+				if (notelist[n].flag != 1 && !scene.getObjectByName('note'+String(n))) {
+					console.log(scene.getObjectByName('note'+String(n)));
+					console.log('note'+String(n));
+					notelist.splice(n, 1);
+				}
 			}
 		}
 
