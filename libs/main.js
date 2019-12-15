@@ -2,6 +2,7 @@ import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threej
 import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r110/examples/jsm/controls/OrbitControls.js';
 
 var play = {};
+var notelist = [];
 
 (function () {
 	function main() {
@@ -93,6 +94,11 @@ var play = {};
 				}
 			}
 		}
+
+		play.notePos = [-3, -1, 1, 3];
+		play.interval = 2500;
+		play.sounds = ['sound1', 'sound2', 'sound3', 'sound4'];
+
 		const inputManager = new InputManager();
 
 		const scene = new THREE.Scene();
@@ -126,19 +132,65 @@ var play = {};
 			map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
 		});
 
-		// const material2 = new THREE.MeshBasicMaterial({
-		// 	color: 0x00ff00
-		// });
-
 		const cube = new THREE.Mesh(geometry, material);
-		// const note = new THREE.Mesh(geometry2, material2);
 		// cube.rotation.x = 90;
 
 		scene.add(cube);
 		cubes.push(cube);  // add to our list of cubes to rotate
 
-		// scene.add(note);
-		// note.position.set(0, 0.5, -90);
+		
+		class NoteH{
+			constructor(){
+				this.flag = 1;
+				this.posX = Math.floor(Math.random() * (4));
+				//spawn note
+				this._object = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.5), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+				this._object.position.x = play.notePos[this.posX];
+				this._object.position.y = .5;
+				this._object.position.z = -90;
+				this._object.x = this.posX;
+				notelist.push(this);
+				scene.add(this._object);
+			}
+			move(){
+				if (this._object.position.z <= 1) {
+					//move note
+					this._object.position.z += 1;
+				}
+				else {
+					scene.remove(this._object);
+				}
+				//check note hit
+				if (this._object.position.z >= -1 && this._object.position.z <= 1) {
+					console.log('inrange')
+					if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
+						inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3)
+						{
+							// var soundID = play.sounds[1];
+							// document.getElementById(soundID).play();
+							console.log('got it')
+							this.flag = 0;
+							scene.remove(this._object);
+						}
+				}
+			}
+		}
+
+		function moveNote(){
+			var n = 0;
+			for(n; n < notelist.length; n++)
+			{
+				notelist[n].move();
+			}
+		}
+
+		function checknotehit(){
+			var n = 0;
+			for(n; n < notelist.length; n++)
+			{
+				if(!notelist[n].flag) notelist.splice(n, 1);
+			}
+		}
 
 		function resizeRendererToDisplaySize() {
 			const canvas = renderer.domElement;
@@ -153,10 +205,17 @@ var play = {};
 		}
 
 		var curpos = 0
+		var interval = 0;
 		function render(time) {
-			time *= 0.001;
-
+			interval += 1;
+			// console.log(time);
 			resizeRendererToDisplaySize();
+
+			if (interval % 500 == 0) {
+				new NoteH();
+			}
+			moveNote();
+			checknotehit();
 
 			cubes.forEach((cube, ndx) => {
 				const speed = .2 + ndx * .1;
@@ -175,67 +234,6 @@ var play = {};
 
 		requestAnimationFrame(render);
 	}
-
-	play.notePos = [-3, -1, 1, 3];
-	play.interval = 2500;
-	play.sounds = ['sound1', 'sound2', 'sound3', 'sound4'];
-
-	setTimeout(function () {
-
-		if (play.interval > 700) {
-			play.interval -= 100;
-		}
-
-		posX = Math.floor(Math.random() * (4));
-		//alert("loc:"+keyhero.notePos[posX] + " num:" + posX);   /*WORKS*/
-
-		//spawn note
-		const note = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
-		note.position.x = play.notePos[posX];
-		note.position.y = .5;
-		note.position.z = -90;
-		note.x = posX;
-		scene.add(note);
-
-		function move () {
-
-			requestAnimationFrame(move);
-
-			if (note.position.z <= -90) {
-				//move note
-				note.position.z += 1;
-
-				//check note hit
-				if (inputManager.keys.bt1.down && note.position.z == 0 || inputManager.keys.bt2.down && note.position.z == 0 || inputManager.keys.bt3.down && note.position.z == 0 || inputManager.keys.bt4.down && note.position.z == 0) {
-
-					var soundID = play.sounds[1];
-					document.getElementById(soundID).play();
-
-					scene.remove(note);
-					cancelAnimationFrame(move);
-					//nullify function and note freeing memory and ending function, needed
-					note = undefined;
-					move = undefined;
-				}
-				
-				renderer.render(scene, camera);
-			}
-			//note scrolls past
-			else {
-				var slideId = play.sounds[4];
-				document.getElementById(slideId).play();
-
-				scene.remove(note);
-				renderer.render(scene, camera);
-				cancelAnimationFrame(move);
-				//nullify function and note freeing memory and ending function
-				note = undefined;
-				move = undefined;
-			}
-		};
-		move();
-
-	}, play.interval);
 
 	main();
 
