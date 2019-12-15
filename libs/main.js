@@ -187,7 +187,7 @@ var notelist = [];
 		const cubes = [];  // just an array we can use to rotate the cubes
 
 		const material = new THREE.MeshBasicMaterial({
-			map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
+			map: loader.load('assets/piano.png'),
 		});
 
 		const cube = new THREE.Mesh(geometry, material);
