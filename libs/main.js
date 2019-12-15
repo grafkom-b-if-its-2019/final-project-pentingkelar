@@ -158,10 +158,11 @@ var notelist = [];
 					this._object.position.z += 1;
 				}
 				else {
+					this.flag = 0;
 					scene.remove(this._object);
 				}
 				//check note hit
-				if (this._object.position.z >= -1 && this._object.position.z <= 1) {
+				if (this._object.position.z >= -0.75 && this._object.position.z <= 0.75) {
 					console.log('inrange')
 					if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
 						inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3)
@@ -204,14 +205,20 @@ var notelist = [];
 			}
 		}
 
-		var curpos = 0
+		var clock = new THREE.Clock();
+		var time = 0;
+		var delta = 0;
 		var interval = 0;
-		function render(time) {
-			interval += 1;
-			// console.log(time);
+		var curpos = 0;
+		function render() {
+			delta = clock.getDelta() * 1000;
+			time += delta;
+			interval = Math.floor(time);
 			resizeRendererToDisplaySize();
 
-			if (interval % 500 == 0) {
+			if (interval >= 1000) {
+				console.log(interval);
+				time = 0;
 				new NoteH();
 			}
 			moveNote();
