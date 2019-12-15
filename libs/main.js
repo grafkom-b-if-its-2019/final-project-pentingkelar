@@ -112,6 +112,64 @@ var notelist = [];
 
 		const loader = new THREE.TextureLoader();
 
+		// create the particle variables
+		var particleCount = 500,
+			particles = new THREE.Geometry(),
+			pMaterial = new THREE.PointsMaterial({
+				size: 5,
+				map: loader.load(
+					"./assets/particle.png"
+				),
+				color: 0x888888,
+				blending: THREE.AdditiveBlending,
+				transparent: true,
+				depthTest: false
+			});
+
+		// now create the individual particles
+		for (var p = 0; p < particleCount; p++) {
+
+			// create a particle with random
+			// position values, -5 -> 5
+			var pX = Math.random() * 100 - 50,
+				pY = Math.random() * 100 - 50,
+				pZ = Math.random() * (-300 - (-100)) - 100,
+				particle = new THREE.Vector3(pX, pY, pZ);
+			// create a velocity vector
+			particle.velocity = new THREE.Vector3(
+				0,				// x
+				0,				// y
+				2.5);	// z
+
+			// add it to the geometry
+			particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystem = new THREE.Points(
+			particles,
+			pMaterial);
+
+		scene.add(particleSystem);
+
+		particleSystem.sortParticles = true;
+
+		function particlemove() {
+
+			var pCount = particleCount;
+			while (pCount--) {
+				// get the particle
+				var particle = particles.vertices[pCount];
+
+				// check if we need to reset
+				if (particle.z > 5) {
+					particle.z=Math.random() * (-300 - (-100)) - 100;
+				}
+
+				particle.add(particle.velocity);
+			}
+		}
+
 		const materialplane = new THREE.MeshBasicMaterial({
 			//map: loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcSBR32fWLz4gU2RlpSkhHFxfYnqb6dhvZGaZwHQsmpvCruLi0pj'), side: THREE.DoubleSide
 			map: loader.load('assets/images.png'), side: THREE.DoubleSide
@@ -138,9 +196,9 @@ var notelist = [];
 		scene.add(cube);
 		cubes.push(cube);  // add to our list of cubes to rotate
 
-		
-		class NoteH{
-			constructor(){
+
+		class NoteH {
+			constructor() {
 				this.flag = 1;
 				this.posX = Math.floor(Math.random() * (4));
 				//spawn note
@@ -152,44 +210,49 @@ var notelist = [];
 				notelist.push(this);
 				scene.add(this._object);
 			}
-			move(){
+			move() {
 				if (this._object.position.z <= 1) {
 					//move note
 					this._object.position.z += 1;
 				}
 				else {
+					console.log('inrange');
 					this.flag = 0;
 					scene.remove(this._object);
 				}
 				//check note hit
-				if (this._object.position.z >= -0.75 && this._object.position.z <= 0.75) {
-					console.log('inrange')
-					if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
-						inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3)
-						{
-							// var soundID = play.sounds[1];
-							// document.getElementById(soundID).play();
-							console.log('got it')
-							this.flag = 0;
-							scene.remove(this._object);
-						}
+				if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
+					inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3)
+				 {
+					if (this._object.position.z >= -0.75 && this._object.position.z <= 0.75) {
+						// var soundID = play.sounds[1];
+						// document.getElementById(soundID).play();
+						console.log('great')
+						this.flag = 0;
+						scene.remove(this._object);
+					}
+					else if (this._object.position.z >= -1 && this._object.position.z <= 1) {
+						// var soundID = play.sounds[1];
+						// document.getElementById(soundID).play();
+						console.log('good')
+						this.flag = 0;
+						scene.remove(this._object);
+					}
 				}
 			}
 		}
 
-		function moveNote(){
+		function moveNote() {
 			var n = 0;
-			for(n; n < notelist.length; n++)
-			{
+			for (n; n < notelist.length; n++) {
 				notelist[n].move();
 			}
 		}
 
-		function checknotehit(){
+		function checknotehit() {
 			var n = 0;
-			for(n; n < notelist.length; n++)
-			{
-				if(!notelist[n].flag) notelist.splice(n, 1);
+			for (n; n < notelist.length; n++) {
+				if (!notelist[n].flag) notelist.splice(n, 1);
 			}
 		}
 
@@ -217,12 +280,14 @@ var notelist = [];
 			resizeRendererToDisplaySize();
 
 			if (interval >= 1000) {
-				console.log(interval);
+				// console.log(interval);
 				time = 0;
 				new NoteH();
 			}
 			moveNote();
 			checknotehit();
+			particlemove();
+			particles.verticesNeedUpdate = true;
 
 			cubes.forEach((cube, ndx) => {
 				const speed = .2 + ndx * .1;
