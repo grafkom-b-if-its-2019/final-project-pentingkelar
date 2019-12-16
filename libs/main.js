@@ -2,8 +2,11 @@ import * as THREE from './three.module.js';
 
 var play = {};
 var notelist = [];
+var hp = 5;
+var score = 0;
+var die = {};
 
-(function () {
+(die.start = function () {
 	function main() {
 		const canvas = document.querySelector('#c');
 		const renderer = new THREE.WebGLRenderer({ canvas });
@@ -114,12 +117,11 @@ var notelist = [];
 			scene.fog = new THREE.Fog(color, near, far);
 		}
 
-		const boxWidth = 1;
-		const boxHeight = 1;
-		const boxDepth = 1;
-		const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-
-		// const geometry2 = new THREE.BoxGeometry(1, 1, 1);
+		const skyColor = 0xbafcf9;  // light blue
+		const groundColor = 0x005e19;  // dark grin
+		const intensity = 1;
+		const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+		scene.add(light);
 
 		const loader = new THREE.TextureLoader();
 
@@ -203,6 +205,7 @@ var notelist = [];
 		}
 
 		const boxset = [];
+		var boxtime = [0, 0, 0, 0];
 		posset = -3;
 		for (var i = 0; i < 4; i++) {
 			const object = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.125, 1.5), new THREE.MeshBasicMaterial({ color: 0x242424 }));
@@ -213,15 +216,45 @@ var notelist = [];
 		}
 
 		const cubes = [];  // just an array we can use to rotate the cubes
-		const material = new THREE.MeshBasicMaterial({
-			map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
-		});
+		{
+			const material = new THREE.MeshBasicMaterial({
+				map: loader.load('../assets/ptile.png'), transparent: true, opacity: 0.5
+			});
 
-		const cube = new THREE.Mesh(geometry, material);
-		// cube.rotation.x = 90;
+			const boxWidth = 1;
+			const boxHeight = 1;
+			const boxDepth = 1;
+			const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
-		scene.add(cube);
-		cubes.push(cube);  // add to our list of cubes to rotate
+			const cube = new THREE.Mesh(geometry, material);
+			// cube.rotation.x = 90;
+
+			scene.add(cube);
+			cubes.push(cube);  // add to our list of cubes to rotate
+		}
+
+		var hppos = -2;
+		var hpbar = [];
+		for (var i = 0; i < 5; i++){
+			const material = new THREE.MeshBasicMaterial({
+				color: 0x0061b7 
+			});
+
+			const boxWidth = 0.25;
+			const boxHeight = 1;
+			const boxDepth = 0.1;
+			const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+			const cube = new THREE.Mesh(geometry, material);
+			cube.position.x = hppos;
+			cube.position.y = -1;
+			cube.name = 'hp'+String(i);
+
+			scene.add(cube);
+			hpbar.push(cube);  // add to our list of cubes to rotate
+			hppos += 1;
+		}
+
 
 		//sounds
 		play.notePos = [-3, -1, 1, 3];
@@ -290,11 +323,11 @@ var notelist = [];
 						// this.movegreat();
 						this.status = 2;
 						this.flag = 0;
-						audioLoader.load('./libs/'+play.sounds[this.posX], function (buffer) {
+						audioLoader.load('./libs/' + play.sounds[this.posX], function (buffer) {
 							sound.setBuffer(buffer);
 							sound.setLoop(false);
 							sound.setVolume(0.75);
-							if(sound.isPlaying) sound.stop();
+							if (sound.isPlaying) sound.stop();
 							sound.play();
 						});
 					}
@@ -303,11 +336,11 @@ var notelist = [];
 						// this.movegood();
 						this.status = 1;
 						this.flag = 0;
-						audioLoader.load('./libs/'+play.sounds[this.posX], function (buffer) {
+						audioLoader.load('./libs/' + play.sounds[this.posX], function (buffer) {
 							sound.setBuffer(buffer);
 							sound.setLoop(false);
 							sound.setVolume(0.5);
-							if(sound.isPlaying) sound.stop();
+							if (sound.isPlaying) sound.stop();
 							sound.play();
 						});
 					}
@@ -323,16 +356,133 @@ var notelist = [];
 			}
 		}
 
+		//change color on judge block
+		function judgecolor(pos, judge) {
+
+			if (boxtime[pos] >= 0) {
+				if (judge == 2) boxset[pos].material.color.setHex(0x169900);
+				else if (judge == 1) boxset[pos].material.color.setHex(0x8c7000);
+				else if (judge == -1) boxset[pos].material.color.setHex(0x8c1900);
+				boxtime[pos]--;
+				// console.log('yes'+boxtime[pos]);
+			}
+			else {
+				boxset[pos].material.color.setHex(0x4f4f4f);
+				console.log('stay' + boxtime[pos]);
+			}
+			// console.log(boxtime[pos]);
+		}
+
+		function pophp() {
+			scene.remove(scene.getObjectByName('hp'+String(hpbar.length - 1)));
+			hpbar.splice(hpbar.length - 1, 1);
+		}
+
+		function hpcheck(status) {
+			if (status == -1){
+				hp--;
+				pophp();
+			}
+			if (hp <= 0) window.location.replace("gameover.html");
+			console.log(hp);
+		}
+
+		var loadert = new THREE.FontLoader();
+		var group = new THREE.Group();
+		scene.add(group);
+
+		loadert.load(
+			'assets/affection_ldr_regular.json',
+			// onLoad callback
+			function (font) {
+				// do something with the font
+				var geometryskr = new THREE.TextGeometry(String(score), {
+					font: font,
+					size: 0.5,
+					height: 0.1,
+					curveSegments: 12,
+				});
+
+				var materialskr = new THREE.MeshPhongMaterial({
+					color: 0xdddddd
+				});
+
+				const textscr = new THREE.Mesh(geometryskr, materialskr);
+				textscr.position.z = -8;
+				textscr.position.x = -7;
+				textscr.rotation.y = Math.PI * 0.3;
+				textscr.name = 'skor';
+				group.add(textscr);
+			});
+
+		function scorecheck(status) {
+			if (status == 2) score += 20;
+			else if (status == 1) score += 10;
+			//remove old mesh
+			group.remove(scene.getObjectByName('skor'));
+
+			loadert.load(
+				'assets/affection_ldr_regular.json',
+				// onLoad callback
+				function (font) {
+					// do something with the font
+					var geometryskr = new THREE.TextGeometry(String(score), {
+						font: font,
+						size: 0.5,
+						height: 0.1,
+						curveSegments: 12,
+					});
+
+					var materialskr = new THREE.MeshPhongMaterial({
+						color: 0xdddddd
+					});
+
+					const textscr = new THREE.Mesh(geometryskr, materialskr);
+					textscr.position.z = -8;
+					textscr.position.x = -7;
+					textscr.rotation.y = Math.PI * 0.3;
+					textscr.name = 'skor';
+					group.add(textscr);
+				});
+
+			console.log(score);
+		}
+
 		//checking for notes using flag
 		function checknotehit() {
 			var n = 0;
 			for (n; n < notelist.length; n++) {
 				if (!notelist[n].flag) {
 					scene.remove(notelist[n]._object);
+					boxtime[notelist[n].posX] = 1000;
+					judgecolor(notelist[n].posX, notelist[n].status);
+					hpcheck(notelist[n].status);
+					scorecheck(notelist[n].status);
 					notelist.splice(n, 1);
 				}
 			}
 		}
+
+		loadert.load('assets/affection_ldr_regular.json', function (font) {
+
+			var geometry = new THREE.TextGeometry('SCORE', {
+				font: font,
+				size: 0.5,
+				height: 0.1,
+				curveSegments: 12,
+			});
+
+			var material = new THREE.MeshPhongMaterial({
+				color: 0xdddddd
+			});
+
+			const textgen = new THREE.Mesh(geometry, material);
+			scene.add(textgen);
+			textgen.position.z = -8;
+			textgen.position.x = -7;
+			textgen.position.y = 2;
+			textgen.rotation.y = Math.PI * 0.3;
+		});
 
 		function resizeRendererToDisplaySize() {
 			const canvas = renderer.domElement;
@@ -369,7 +519,8 @@ var notelist = [];
 
 			cubes.forEach((cube, ndx) => {
 				const speed = .2 + ndx * .1;
-				// const rot = time * speed;
+				const rot = time * speed;
+				cube.rotation.y = rot;
 				if (inputManager.keys.bt1.down) { curpos = 0 }
 				if (inputManager.keys.bt2.down) { curpos = 1 }
 				if (inputManager.keys.bt3.down) { curpos = 2 }
