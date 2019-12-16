@@ -16,6 +16,16 @@ var notelist = [];
 		camera.position.set(0, 5, 10);
 		camera.rotation.set(-0.25, 0, 0);
 
+		// create an AudioListener and add it to the camera
+		var listener = new THREE.AudioListener();
+		camera.add(listener);
+
+		// create a global audio source
+		var sound = new THREE.Audio(listener);
+
+		// load a sound and set it as the Audio object's buffer
+		var audioLoader = new THREE.AudioLoader();
+
 		class InputManager {
 			constructor() {
 				this.keys = {};
@@ -93,10 +103,6 @@ var notelist = [];
 				}
 			}
 		}
-
-		play.notePos = [-3, -1, 1, 3];
-		play.interval = 2500;
-		play.sounds = ['sound1', 'sound2', 'sound3', 'sound4'];
 
 		const inputManager = new InputManager();
 
@@ -188,17 +194,27 @@ var notelist = [];
 		const planeset = [];
 		var posset = -3;
 		for (var i = 0; i < 4; i++) {
-			const object = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.7, 500, 1, 1), materialplane);
+			const object = new THREE.Mesh(new THREE.PlaneBufferGeometry(1.6, 500, 1, 1), materialplane);
 			object.rotation.x = -0.5 * Math.PI;
 			object.position.set(posset, 0, -500 / 2);
 			posset += 2;
 			scene.add(object);
 			planeset.push(object);
 		}
-		const cubes = [];  // just an array we can use to rotate the cubes
 
+		const boxset = [];
+		posset = -3;
+		for (var i = 0; i < 4; i++) {
+			const object = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.125, 1.5), new THREE.MeshBasicMaterial({ color: 0x242424 }));
+			object.position.set(posset, 0, 0);
+			posset += 2;
+			scene.add(object);
+			boxset.push(object);
+		}
+
+		const cubes = [];  // just an array we can use to rotate the cubes
 		const material = new THREE.MeshBasicMaterial({
-			map: loader.load('assets/piano.png'),
+			map: loader.load('https://threejsfundamentals.org/threejs/resources/images/wall.jpg'),
 		});
 
 		const cube = new THREE.Mesh(geometry, material);
@@ -207,23 +223,29 @@ var notelist = [];
 		scene.add(cube);
 		cubes.push(cube);  // add to our list of cubes to rotate
 
-		var number = 0;
+		//sounds
+		play.notePos = [-3, -1, 1, 3];
+		play.sounds = ['sound1.ogg', 'sound2.ogg', 'sound3.ogg', 'sound4.ogg'];
+
 		class NoteH {
+			//status = great, good, atau miss
+			//flag = apakah mencapai di atas? (atau masih jalan)
 			constructor() {
+				this.status = 0;
 				this.flag = 1;
 				this.posX = Math.floor(Math.random() * (4));
 				//spawn note
-				this._object = new THREE.Mesh(new THREE.BoxGeometry(1, 0.25, 0.5), new THREE.MeshBasicMaterial({ color: 0x5fe0fa }));
+				this._object = new THREE.Mesh(new THREE.BoxGeometry(1, 0.25, 0.5), new THREE.MeshBasicMaterial({ color: 0x4f4f4f }));
 				this._object.position.x = play.notePos[this.posX];
 				this._object.position.y = .5;
 				this._object.position.z = -90;
 				this._object.x = this.posX;
-				this._object.name = 'note'+String(number);
 				notelist.push(this);
 				scene.add(this._object);
-				number++;
 			}
+			//movegreat,good,dan miss untuk animasi, tapi masih ada beberapa kejanggalan dan masalah. :/
 			movegreat() {
+				this.status = 2;
 				if (this._object.position.z <= 5) {
 					//move note
 					this._object.position.z += 0.5;
@@ -232,53 +254,68 @@ var notelist = [];
 				}
 				else {
 					this.flag = 0;
-					scene.remove(this._object);
 				}
 			}
 			movegood() {
+				this.status = 1;
 				if (this._object.position.z <= 5) {
 					//move note
-					this.flag = 0;
-					this._object.position.z += 0.00005;
+					this._object.position.z += 0.25;
 					this._object.position.y = -(Math.pow(this._object.position.z, 2) * 0.005) + 2;
 					this._object.rotation.x += 0.5;
 				}
 				else {
-					scene.remove(this._object);
+					this.flag = 0;
 				}
 			}
 			movemiss() {
-				console.log('miss');
-				this.flag = -1;
-				scene.remove(this._object);
+				this.flag = 0;
 			}
 			move() {
-				if (this._object.position.z <= 1) {
+				if (this._object.position.z <= 1.25) {
 					//move note
 					this._object.position.z += 1;
 				}
-				else {
-					if (this.flag == 1) this.movemiss();
+				else if (this.status == 0 && this.flag) {
+					this.status = -1;
+					console.log('miss');
+					// this.movemiss();
+					this.flag = 0;
 				}
 				//check note hit
-				if (inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
-					inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3) {
+				if ((inputManager.keys.bt1.down && this.posX == 0 || inputManager.keys.bt2.down && this.posX == 1 ||
+					inputManager.keys.bt3.down && this.posX == 2 || inputManager.keys.bt4.down && this.posX == 3) && (this.status == 0)) {
 					if (this._object.position.z >= -0.75 && this._object.position.z <= 0.75) {
-						// var soundID = play.sounds[1];
-						// document.getElementById(soundID).play();
 						console.log('great')
-						if (this.flag == 1) this.movegreat();
+						// this.movegreat();
+						this.status = 2;
+						this.flag = 0;
+						audioLoader.load('./libs/'+play.sounds[this.posX], function (buffer) {
+							sound.setBuffer(buffer);
+							sound.setLoop(false);
+							sound.setVolume(0.75);
+							if(sound.isPlaying) sound.stop();
+							sound.play();
+						});
 					}
 					else if (this._object.position.z >= -1 && this._object.position.z <= 1) {
-						// var soundID = play.sounds[1];
-						// document.getElementById(soundID).play();
 						console.log('good')
-						if (this.flag == 1) this.movegood();
+						// this.movegood();
+						this.status = 1;
+						this.flag = 0;
+						audioLoader.load('./libs/'+play.sounds[this.posX], function (buffer) {
+							sound.setBuffer(buffer);
+							sound.setLoop(false);
+							sound.setVolume(0.5);
+							if(sound.isPlaying) sound.stop();
+							sound.play();
+						});
 					}
 				}
 			}
 		}
 
+		//moving all note resides from the array.
 		function moveNote() {
 			var n = 0;
 			for (n; n < notelist.length; n++) {
@@ -286,12 +323,12 @@ var notelist = [];
 			}
 		}
 
+		//checking for notes using flag
 		function checknotehit() {
 			var n = 0;
 			for (n; n < notelist.length; n++) {
-				if (notelist[n].flag != 1 && !scene.getObjectByName('note'+String(n))) {
-					console.log(scene.getObjectByName('note'+String(n)));
-					console.log('note'+String(n));
+				if (!notelist[n].flag) {
+					scene.remove(notelist[n]._object);
 					notelist.splice(n, 1);
 				}
 			}
